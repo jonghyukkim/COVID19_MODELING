@@ -1,0 +1,251 @@
+﻿국명,2자리,3자리
+ 가나,GH,GHA
+ 가봉,GA,GAB
+ 가이아나,GY,GUY
+ 감비아,GM,GMB
+ 건지섬,GG,GGY
+ 과들루프,GP,GLP
+ 과테말라,GT,GTM
+ 괌,GU,GUM
+ 그레나다,GD,GRD
+ 그리스,GR,GRC
+ 그린란드,GL,GRL
+ 기니비사우,GW,GNB
+ 기니,GN,GIN
+ 나미비아,NA,NAM
+ 나우루,NR,NRU
+ 나이지리아,NG,NGA
+ 남극,AQ,ATA
+ 남수단,SS,SSD
+ 남아프리카 공화국,ZA,ZAF
+ 네덜란드,NL,NLD
+ 네팔,NP,NPL
+ 노르웨이,NO,NOR
+ 노퍽섬,NF,NFK
+ 누벨칼레도니,NC,NCL
+ 뉴질랜드,NZ,NZL
+ 니우에,NU,NIU
+ 니제르,NE,NER
+ 니카라과,NI,NIC
+ 대한민국,KR,KOR
+ 덴마크,DK,DNK
+ 도미니카 공화국,DO,DOM
+ 도미니카 연방,DM,DMA
+ 독일,DE,DEU
+ 동티모르,TL,TLS
+ 라오스,LA,LAO
+ 라이베리아,LR,LBR
+ 라트비아,LV,LVA
+ 러시아,RU,RUS
+ 레바논,LB,LBN
+ 레소토,LS,LSO
+ 레위니옹,RE,REU
+ 루마니아,RO,ROU
+ 룩셈부르크,LU,LUX
+ 르완다,RW,RWA
+ 리비아,LY,LBY
+ 리투아니아,LT,LTU
+ 리히텐슈타인,LI,LIE
+ 마다가스카르,MG,MDG
+ 마르티니크,MQ,MTQ
+ 마셜 제도,MH,MHL
+ 마요트,YT,MYT
+ 마카오,MO,MAC
+ 말라위,MW,MWI
+ 말레이시아,MY,MYS
+ 말리,ML,MLI
+ 맨섬,IM,IMN
+ 멕시코,MX,MEX
+ 모나코,MC,MCO
+ 모로코,MA,MAR
+ 모리셔스,MU,MUS
+ 모리타니,MR,MRT
+ 모잠비크,MZ,MOZ
+ 몬테네그로,ME,MNE
+ 몬트세랫,MS,MSR
+ 몰도바,MD,MDA
+ 몰디브,MV,MDV
+ 몰타,MT,MLT
+ 몽골,MN,MNG
+ 미국령 군소 제도,UM,UMI
+ 미국령 버진아일랜드,VI,VIR
+ 미국,US,USA
+ 미얀마,MM,MMR
+ 미크로네시아 연방,FM,FSM
+ 바누아투,VU,VUT
+ 바레인,BH,BHR
+ 바베이도스,BB,BRB
+ 바티칸 시국,VA,VAT
+ 바하마,BS,BHS
+ 방글라데시,BD,BGD
+ 버뮤다,BM,BMU
+ 베냉,BJ,BEN
+ 베네수엘라,VE,VEN
+ 베트남,VN,VNM
+ 벨기에,BE,BEL
+ 벨라루스,BY,BLR
+ 벨리즈,BZ,BLZ
+ 보네르섬,BQ,BES
+ 보스니아 헤르체고비나,BA,BIH
+ 보츠와나,BW,BWA
+ 볼리비아,BO,BOL
+ 부룬디,BI,BDI
+ 부르키나파소,BF,BFA
+ 부베섬,BV,BVT
+ 부탄,BT,BTN
+ 북마리아나 제도,MP,MNP
+ 북마케도니아,MK,MKD
+ 불가리아,BG,BGR
+ 브라질,BR,BRA
+ 브루나이,BN,BRN
+ 사모아,WS,WSM
+ 사우디아라비아,SA,SAU
+ 사우스조지아 사우스샌드위치 제도,GS,SGS
+ 산마리노,SM,SMR
+ 상투메 프린시페,ST,STP
+ 생마르탱,MF,MAF
+ 생바르텔레미,BL,BLM
+ 생피에르 미클롱,PM,SPM
+ 서사하라,EH,ESH
+ 세네갈,SN,SEN
+ 세르비아,RS,SRB
+ 세이셸,SC,SYC
+ 세인트루시아,LC,LCA
+ 세인트빈센트 그레나딘,VC,VCT
+ 세인트키츠 네비스,KN,KNA
+ 세인트헬레나,SH,SHN
+ 소말리아,SO,SOM
+ 솔로몬 제도,SB,SLB
+ 수단,SD,SDN
+ 수리남,SR,SUR
+ 스리랑카,LK,LKA
+ 스발바르 얀마옌,SJ,SJM
+ 스웨덴,SE,SWE
+ 스위스,CH,CHE
+ 스페인,ES,ESP
+ 슬로바키아,SK,SVK
+ 슬로베니아,SI,SVN
+ 시리아,SY,SYR
+ 시에라리온,SL,SLE
+ 신트마르턴,SX,SXM
+ 싱가포르,SG,SGP
+ 아랍에미리트,AE,ARE
+ 아루바,AW,ABW
+ 아르메니아,AM,ARM
+ 아르헨티나,AR,ARG
+ 아메리칸사모아,AS,ASM
+ 아이슬란드,IS,ISL
+ 아이티,HT,HTI
+ 아일랜드,IE,IRL
+ 아제르바이잔,AZ,AZE
+ 아프가니스탄,AF,AFG
+ 안도라,AD,AND
+ 알바니아,AL,ALB
+ 알제리,DZ,DZA
+ 앙골라,AO,AGO
+ 앤티가 바부다,AG,ATG
+ 앵귈라,AI,AIA
+ 에리트레아,ER,ERI
+ 에스와티니,SZ,SWZ
+ 에스토니아,EE,EST
+ 에콰도르,EC,ECU
+ 에티오피아,ET,ETH
+ 엘살바도르,SV,SLV
+ 영국령 버진아일랜드,VG,VGB
+ 영국령 인도양 지역,IO,IOT
+ 영국,GB,GBR
+ 예멘,YE,YEM
+ 오만,OM,OMN
+ 오스트레일리아,AU,AUS
+ 오스트리아,AT,AUT
+ 온두라스,HN,HND
+ 올란드 제도,AX,ALA
+ 왈리스 푸투나,WF,WLF
+ 요르단,JO,JOR
+ 우간다,UG,UGA
+ 우루과이,UY,URY
+ 우즈베키스탄,UZ,UZB
+ 우크라이나,UA,UKR
+ 이라크,IQ,IRQ
+ 이란,IR,IRN
+ 이스라엘,IL,ISR
+ 이집트,EG,EGY
+ 이탈리아,IT,ITA
+ 인도네시아,ID,IDN
+ 인도,IN,IND
+ 일본,JP,JPN
+ 자메이카,JM,JAM
+ 잠비아,ZM,ZMB
+ 저지섬,JE,JEY
+ 적도 기니,GQ,GNQ
+ 조선민주주의인민공화국,KP,PRK
+ 조지아,GE,GEO
+ 중국,CN,CHN
+ 중앙아프리카 공화국,CF,CAF
+ 중화민국,TW,TWN
+ 지부티,DJ,DJI
+ 지브롤터,GI,GIB
+ 짐바브웨,ZW,ZWE
+ 차드,TD,TCD
+ 체코,CZ,CZE
+ 칠레,CL,CHL
+ 카메룬,CM,CMR
+ 카보베르데,CV,CPV
+ 카자흐스탄,KZ,KAZ
+ 카타르,QA,QAT
+ 캄보디아,KH,KHM
+ 캐나다,CA,CAN
+ 케냐,KE,KEN
+ 케이맨 제도,KY,CYM
+ 코모로,KM,COM
+ 코스타리카,CR,CRI
+ 코코스 제도,CC,CCK
+ 코트디부아르,CI,CIV
+ 콜롬비아,CO,COL
+ 콩고 공화국,CG,COG
+ 콩고 민주 공화국,CD,COD
+ 쿠바,CU,CUB
+ 쿠웨이트,KW,KWT
+ 쿡 제도,CK,COK
+ 퀴라소,CW,CUW
+ 크로아티아,HR,HRV
+ 크리스마스섬,CX,CXR
+ 키르기스스탄,KG,KGZ
+ 키리바시,KI,KIR
+ 키프로스,CY,CYP
+ 타지키스탄,TJ,TJK
+ 탄자니아,TZ,TZA
+ 태국,TH,THA
+ 터크스 케이커스 제도,TC,TCA
+ 터키,TR,TUR
+ 토고,TG,TGO
+ 토켈라우,TK,TKL
+ 통가,TO,TON
+ 투르크메니스탄,TM,TKM
+ 투발루,TV,TUV
+ 튀니지,TN,TUN
+ 트리니다드 토바고,TT,TTO
+ 파나마,PA,PAN
+ 파라과이,PY,PRY
+ 파키스탄,PK,PAK
+ 파푸아뉴기니,PG,PNG
+ 팔라우,PW,PLW
+ 팔레스타인,PS,PSE
+ 페로 제도,FO,FRO
+ 페루,PE,PER
+ 포르투갈,PT,PRT
+ 포클랜드 제도,FK,FLK
+ 폴란드,PL,POL
+ 푸에르토리코,PR,PRI
+ 프랑스령 기아나,GF,GUF
+ 프랑스령 남방 및 남극,TF,ATF
+ 프랑스령 폴리네시아,PF,PYF
+ 프랑스,FR,FRA
+ 피지,FJ,FJI
+ 핀란드,FI,FIN
+ 필리핀,PH,PHL
+ 핏케언 제도,PN,PCN
+ 허드 맥도널드 제도,HM,HMD
+ 헝가리,HU,HUN
+ 홍콩,HK,HKG
+안틸레스,AN,ANT
