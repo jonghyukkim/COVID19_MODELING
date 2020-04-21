@@ -1,5 +1,5 @@
 ---
-title: "EDA"
+title: "EDA_Preprocessing_COVID"
 author: "jonghyuk kim"
 date: "`r Sys.Date()`"
 output: 
@@ -63,475 +63,260 @@ options(tibble.width = Inf)
 </div>
 
 # **데이터**
-
-```{r, echo=FALSE}
-roaming_data <- fread("2. Roaming_data.csv")
-news_list <- read_excel("3-1. NewsList.xls")
+```{r}
+roaming_data <- fread("2. Roaming_data.csv", encoding = "UTF-8")
+covid_global <- fread("COVID-19-global-data.csv", encoding = "UTF-8")
+population <- fread("Population_for_challenge.csv", encoding = "UTF-8")
+y <- read_excel("확진자.xlsx")
+y <- as.data.frame(y) %>% select(1:3)
 ```
 
-<div style="margin-bottom:90px;">
+```{r, echo=FALSE}
+library(DT)
+options(DT.options = list(pageLength=5))
+population$V3 <- NULL
+datatable(roaming_data %>% slice(1:10000),
+          caption = "로밍데이터",
+          filter='top')
+datatable(covid_global,
+          caption = "글로벌 현황",
+          filter='top')
+datatable(population,
+          caption = "글로벌 인구",
+          filter='top')
+```
+
+<div style="margin-bottom:80px;">
 </div>
 
-```{r, echo=FALSE}
-# roaming_data <- roaming_data %>% mutate(iso = ifelse(iso=="tp", "tl", iso))
+# **로밍 데이터 탐색**
+```{r, echo=FALSE, results=FALSE}
+# 대륙으로 재범주화
+# install.packages("jsonlite", repos="https://cran.rstudio.com/")
+library("jsonlite")
+json_file <- 'https://datahub.io/JohnSnowLabs/country-and-continent-codes-list/datapackage.json'
+json_data <- fromJSON(paste(readLines(json_file), collapse=""))
 
-roaming_data <- roaming_data %>%
-  mutate(return = ymd(return) %>% as.POSIXct(),
-         arrival = ymd(arrival) %>% as.POSIXct(),
-         departure = ymd(departure) %>% as.POSIXct())
+# get list of all resources:
+print(json_data$resources$name)
 
-nation_code <- fread("국가코드.csv", encoding="UTF-8")
+# print all tabular data(if exists any)
+for(i in 1:length(json_data$resources$datahub$type)){
+  if(json_data$resources$datahub$type[i]=='derived/csv'){
+    path_to_file = json_data$resources$path[i]
+    data <- read.csv(url(path_to_file))
+    head(data)
+  }
+}
 
-nation_code <- nation_code %>%
-  mutate(국명 = str_remove(nation_code$국명, "<") %>% str_trim(side = "left"))
+Continent <- data %>% 
+  select(Continent_Name, Country_Name, Two_Letter_Country_Code) %>% 
+  mutate(iso = str_to_lower(Two_Letter_Country_Code)) %>% 
+  select(-Two_Letter_Country_Code)
 
-nation_code <- nation_code %>% rename(iso = `2자리`,
-                                      nation= 국명) %>% mutate(iso = str_to_lower(iso)) %>% select(-`3자리`)
+kk <- roaming_data$iso %>% unique()
+continent_name <- Continent %>% filter(iso %in% kk) %>% filter(!duplicated(iso))
 
-roaming_data <- left_join(roaming_data, nation_code, by = c("iso" = "iso"))
-
+roaming_data_new <- left_join(roaming_data, continent_name, by=c("iso" = "iso"))
+roaming_data_new <-  roaming_data_new %>% 
+  mutate(stay_time = ymd(departure)-ymd(arrival),
+         flight_time = ymd(return)-ymd(departure))
+# roaming_data_new %>% 
+#   filter(!is.na(Continent_Name)) %>% 
+#   group_by(Continent_Name) %>%
+#   summarize(Min = min(stay_time,na.rm = TRUE),
+#             Q1 = quantile(stay_time,probs = .25,na.rm = TRUE),
+#             Median = median(stay_time, na.rm = TRUE),
+#             Mean = mean(stay_time, na.rm = TRUE),
+#             Q3 = quantile(stay_time,probs = .75,na.rm = TRUE),
+#             Max = max(stay_time,na.rm = TRUE),
+#             IQR=IQR(stay_time,na.rm = TRUE),
+#             Lower_Outlier_Fence = Q1 - 1.5 * IQR,
+#             Upper_Outlier_Fence = Q3 + 1.5 * IQR)
 ```
 
-# **귀국 총합**
-
-```{r, echo=FALSE}
-roaming_data %>% 
-    group_by(return) %>% 
-    summarise(count = sum(count)) %>% 
-    ggplot(aes(x=return,y=count)) +
-    geom_line() +
-    geom_point() +
-    scale_x_datetime(date_breaks="7 day", 
-                     labels = date_format("%Y-%m-%d")) + 
-    theme_bw() +
-    labs(x="",
-         title="Total return count") +
-    theme(axis.text.x = element_text(angle = 90, vjust=0.5, size = 10, face = "bold"),
-          plot.title = element_text(hjust = 0.5, face = "bold", size = 17),
-          panel.grid.minor = element_blank(),
-          strip.text.x = element_text(size=11,face = "bold"))
+```{r, fig.width=16, fig.height=9}
+roaming_data_new %>%
+  filter(!is.na(Continent_Name)) %>% 
+  ggplot() +
+  geom_histogram(aes(x=stay_time), bins = 31) +
+  scale_x_continuous(breaks = seq(0, 31, by = 1)) +
+  facet_wrap(~ Continent_Name, nrow = 2, scales = "free") +
+  labs(x = "stay time(day)", title="Histogram of stay_time according to Continent") +
+  theme(axis.title.x = element_text(hjust = 0.5, face = "bold", size = 11),
+        plot.title = element_text(hjust = 0.5, face = "bold", size = 16),
+        plot.subtitle = element_text(hjust = 0.5, face = "bold", size = 13),
+        strip.text = element_text(hjust = 0.5, face = "bold", size = 10)) 
 ```
 
-<div style="margin-bottom:100px;">
+ * 외국에 머무르는 시간의 분포가 positive skewd 형태의 모양을 띄고 있음 (분포가 종모양이 아닌 좌로 치우쳐 있음)
+ * 이를 단순 outlier로 보면 안될 것 같음 --> 경유행을 탑승한 것으로 파악! 
+
+
+```{r, fig.width=16, fig.height=9}
+roaming_data_new %>%
+  filter(!is.na(Continent_Name)) %>% 
+  ggplot() +
+  geom_histogram(aes(x=flight_time), bins = 31) +
+  scale_x_continuous(breaks = seq(0, 31, by = 1)) +
+  facet_wrap(~ Continent_Name, nrow = 2, scales = "free") +
+  labs(x = "flight time(day)", title="Histogram of flight_time according to Continent") +
+  theme(axis.title.x = element_text(hjust = 0.5, face = "bold", size = 11),
+        plot.title = element_text(hjust = 0.5, face = "bold", size = 16),
+        plot.subtitle = element_text(hjust = 0.5, face = "bold", size = 13),
+        strip.text = element_text(hjust = 0.5, face = "bold", size = 10)) 
+```
+
+ * 비행 시간의 분포가 positive skewd 형태의 모양을 띄고 있음 
+ * 이는 당연하지만, 비행 시간이 일정 시간 넘어간다는 것은 한국에 오기 전 다른 나라를 방문한 것으로 파악이 됨
+
+<div style="margin-bottom:70px;">
+</div>
+
+(예제)
+```{r, echo=FALSE}
+roaming_data %>% slice(10) %>% kable() %>% kable_styling()
+```
+
+(해석)
+아랍에미리트에 2020년1월15일 도착한 뒤, 아랍에미리트를 2020년 1월 15일 출국하여, 한국에 귀국한 날짜가 2020년 1월 31일인 입국자수는 3명.
+아랍에미리트 1/15 도착. 아랍에미리트 1/15 출국으로 아랍에미리트 경유행을 탑승한 것으로 해석할 수 있음.
+아랍에미리트 출국날짜 대비, 한국 귀국 날짜가 오랜 차이를 보이는 것은 한국 귀국 전 다른 나라에 머문 것으로 볼 수 있음.
+
+<div style="margin-bottom:50px;">
 </div>
 
-# **귀국 나라별**
-```{r, echo=FALSE}
-iso_name <- roaming_data$iso %>% unique()
-plot_list <- list()
-cnt <- 0
+한국으로 귀국한 승객의 유형을 
 
-for (i in iso_name[1:12]) {
-  cnt <- cnt + 1
-  
-  plot_list[[i]] <- roaming_data %>% 
-    group_by(return, iso, nation) %>% 
-    summarise(count = sum(count)) %>% 
-    filter(iso == i) %>% 
-    ggplot(aes(x=return,y=count)) +
-    geom_line() +
-    geom_point() +
-    scale_x_datetime(date_breaks="7 day", 
-                     labels = date_format("%Y-%m-%d")) + 
-    theme_bw() +
-    labs(x="") +
-    theme(axis.text.x = element_text(angle = 90, vjust=0.5, size = 10, face = "bold"),  # rotate x axis text
-          panel.grid.minor = element_blank(),
-          strip.text.x = element_text(size=15,face = "bold")) +  # turn off minor grid
-    facet_grid(~nation)
-}
+1. 외국에 머무름 --> 한국 바로 귀국
+2. 외국에 머무름 --> 한국 오기 전 다른 나라 방문
+3. 외국 경유 --> 한국 바로 귀국
+4. 외국 경유 --> 한국 오기 전 다른 나라 방문
 
-do.call(grid.arrange, c(plot_list, ncol=3))
+유형으로 나누어 볼 수 있음.
+
+<div style="margin-bottom:50px;">
+</div>
+
+이 때, 
+
+1. 외국에 머무름 --> 한국 바로 귀국 (어떤 외국에 얼마나 오래 있었는지 고려하면 됨)
+2. 외국에 머무름 --> 한국 오기 전 다른 나라 방문 (어떤 외국에서의 떠나기 전 시점  + 중간 경유지에서 얼마나 머물렀는지를 고려해야 됨)
+3. 외국 경유 --> 한국 바로 귀국 (어떤 외국에서의 떠나기 전 시점만 고려하면 됨)
+4. 외국 경유 --> 한국 오기 전 다른 나라 방문 (어떤 외국에서의 떠나기 전 시점  + 중간 경유지에서 얼마나 머물렀는지를 고려해야 됨)
+
+<hr>
+
+<div style="margin-bottom:80px;">
+</div>
+
+## 승객 유형 세분화 
+
+```{r}
+roaming_data_new <- roaming_data_new %>% mutate(Passenger_group = ifelse(stay_time >= 3 & flight_time < 3, "NL_NL",
+                                                     ifelse(stay_time >= 3 & flight_time >=3, "NL_LO",
+                                                            ifelse(stay_time < 3 & flight_time < 3, "LO_NL", "LO_LO"))))
 ```
 
 ```{r, echo=FALSE}
-iso_name <- roaming_data$iso %>% unique()
-plot_list <- list()
-cnt <- 0
-
-for (i in iso_name[13:24]) {
-  cnt <- cnt + 1
-  
-  plot_list[[i]] <- roaming_data %>% 
-    group_by(return, iso, nation) %>% 
-    summarise(count = sum(count)) %>% 
-    filter(iso == i) %>% 
-    ggplot(aes(x=return,y=count)) +
-    geom_line() +
-    geom_point() +
-    scale_x_datetime(date_breaks="7 day", 
-                     labels = date_format("%Y-%m-%d")) + 
-    theme_bw() +
-    labs(x="") +
-    theme(axis.text.x = element_text(angle = 90, vjust=0.5, size = 10, face = "bold"),  # rotate x axis text
-          panel.grid.minor = element_blank(),
-          strip.text.x = element_text(size=15,face = "bold")) +  # turn off minor grid
-    facet_grid(~nation)
-}
-
-do.call(grid.arrange, c(plot_list, ncol=3))
+roaming_data_new %>% 
+  group_by(Passenger_group) %>%
+  summarise(N=n()) %>%
+  ggplot(aes(x=Passenger_group, y=N, fill=Passenger_group)) +
+  geom_bar(stat="identity") +
+  scale_fill_brewer(palette='Set1') +
+  geom_text(aes(label=N), vjust=1.2) +
+  labs(x="Passenger group", y="",
+       title = "Case of passenger group",
+       subtitle = "LO(Layover) \nNL(Non Layover)") +
+  theme_fivethirtyeight() +
+  theme(plot.title = element_text(hjust = 0.5, face = "bold", size = 13),
+        plot.subtitle = element_text(hjust = 0.5, face = "bold", size = 11),
+        axis.text.x = element_text(size = 10, face = "bold"))
 ```
 
-```{r, echo=FALSE}
-iso_name <- roaming_data$iso %>% unique()
-plot_list <- list()
-cnt <- 0
+```{r}
+covid_global$Country <- str_to_lower(covid_global$Country) 
+covid_global <- covid_global %>% rename(iso = Country) %>% arrange(day)
+covid_global <- covid_global %>% select(day, iso, Confirmed, Cumulative_confirmed = `Cumulative Confirmed`)
+covid_global <- covid_global %>% mutate(day = str_remove_all(day, pattern = "-"))
 
-for (i in iso_name[25:36]) {
-  cnt <- cnt + 1
-  
-  plot_list[[i]] <- roaming_data %>% 
-    group_by(return, iso, nation) %>% 
-    summarise(count = sum(count)) %>% 
-    filter(iso == i) %>% 
-    ggplot(aes(x=return,y=count)) +
-    geom_line() +
-    geom_point() +
-    scale_x_datetime(date_breaks="7 day", 
-                     labels = date_format("%Y-%m-%d")) + 
-    theme_bw() +
-    labs(x="") +
-    theme(axis.text.x = element_text(angle = 90, vjust=0.5, size = 10, face = "bold"),  # rotate x axis text
-          panel.grid.minor = element_blank(),
-          strip.text.x = element_text(size=15,face = "bold")) +  # turn off minor grid
-    facet_grid(~nation)
-}
+roaming_data_new$return <- as.character(roaming_data_new$return)
+roaming_data_new$arrival <- as.character(roaming_data_new$arrival)
+roaming_data_new$departure <- as.character(roaming_data_new$departure)
+roaming_data_new_pop <- left_join(roaming_data_new, population, by = c("iso" = "iso"))
+roaming_data_new_pop_global <- left_join(roaming_data_new_pop, covid_global, by=c("arrival" = "day", "iso" = "iso"))
+roaming_data_new_pop_global <- roaming_data_new_pop_global %>% rename(Confirmed_arrival = Confirmed, Cumulative_confirmed_arrival = Cumulative_confirmed)
+roaming_data_new_pop_global <- left_join(roaming_data_new_pop_global, covid_global, by=c("departure" = "day", "iso" = "iso"))
+roaming_data_new_pop_global <- roaming_data_new_pop_global %>% rename(Confirmed_departure = Confirmed, Cumulative_confirmed_departure = Cumulative_confirmed)
 
-do.call(grid.arrange, c(plot_list, ncol=3))
+roaming_preprocessed <- roaming_data_new_pop_global %>% 
+  group_by(return, iso, Passenger_group) %>% 
+  summarise(N=sum(count)) %>% 
+  ungroup() %>% 
+  mutate(iso_new = paste0(iso, "_", Passenger_group)) %>%
+  select(-iso, -Passenger_group) %>% 
+  spread(iso_new, N) %>% 
+  mutate(total_N = select(., -return) %>% rowSums(na.rm = T))
+
+roaming_preprocessed
+
+# roaming_data_new_pop_global %>%   
+#   mutate(Confirmed_arrival_pop = Confirmed_arrival/population,
+#          Cumulative_confirmed_arrival_pop = Cumulative_confirmed_arrival/population,
+#          Confirmed_departure_pop = Confirmed_departure/population,
+#          Cumulative_confirmed_departure_pop = Cumulative_confirmed_departure/population) %>% 
+#   select(return, iso, stay_time, Passenger_group) %>%
+#   group_by(return, iso, stay_time, Passenger_group) %>% 
+#   summarise(N=n()) %>% 
+#   ungroup() %>% 
+#   mutate(iso_new = paste0(iso, "_", Passenger_group, "_", stay_time)) %>%
+#   select(-iso, -Passenger_group, -stay_time) %>% 
+#   spread(iso_new, N) %>% head(1)
 ```
 
-```{r, echo=FALSE}
-iso_name <- roaming_data$iso %>% unique()
-plot_list <- list()
-cnt <- 0
+```{r}
+y <- y %>% select(date = 날짜, y = 신규확진자) %>% mutate(date = ymd(date)) %>% filter(date >= "2020-03-18")
 
-for (i in iso_name[37:48]) {
-  cnt <- cnt + 1
-  
-  plot_list[[i]] <- roaming_data %>% 
-    group_by(return, iso, nation) %>% 
-    summarise(count = sum(count)) %>% 
-    filter(iso == i) %>% 
-    ggplot(aes(x=return,y=count)) +
-    geom_line() +
-    geom_point() +
-    scale_x_datetime(date_breaks="7 day", 
-                     labels = date_format("%Y-%m-%d")) + 
-    theme_bw() +
-    labs(x="") +
-    theme(axis.text.x = element_text(angle = 90, vjust=0.5, size = 10, face = "bold"),  # rotate x axis text
-          panel.grid.minor = element_blank(),
-          strip.text.x = element_text(size=15,face = "bold")) +  # turn off minor grid
-    facet_grid(~nation)
-}
+roaming_data_useful <- roaming_data_new %>% 
+  mutate(return = ymd(return),
+         arrival = ymd(arrival),
+         departure = ymd(departure)) %>% 
+  arrange(return) %>% 
+  filter(return >= "2020-03-18")
 
-do.call(grid.arrange, c(plot_list, ncol=3))
+roaming_data_useful_14 <- roaming_data_useful %>% filter(flight_time <= 14)
+roaming_data_useful_14 %>% filter(return == "2020-03-18") %>% View()
 ```
 
-```{r, echo=FALSE}
-iso_name <- roaming_data$iso %>% unique()
-plot_list <- list()
-cnt <- 0
+```{r}
 
-for (i in iso_name[49:60]) {
-  cnt <- cnt + 1
+# roaming_data_useful_14 %>%
+#   select(-arrival, -departure) %>% 
+#   filter(return == "2020-03-18") %>%
+#   mutate(total_time = flight_time + stay_time) %>% 
+#   mutate(value = 1)  %>% 
+#   spread(flight_time, value,  fill = 0) %>% 
+#   rowwise() %>%
+#   mutate_at(vars(6:20), funs())
+
+library(splitstackshape)
+
+roaming_data_useful_14 %>%
+  select(-arrival, -departure) %>% 
+  filter(return == "2020-03-18") %>%
+  mutate(total_time = flight_time + stay_time) %>% 
+  rowwise() %>% 
+  mutate(day = ifelse(total_time >= 14, paste0(seq(flight_time, 14, 1), collapse = ","), paste0(seq(flight_time, total_time, 1), collapse = ","))) %>% 
+  cSplit_e("day", ",", type = "character", fill = 0) %>% 
+  select(-contains("time"), -day) %>% 
+  gather(key = D_day, value = n, 4:18) %>%
+  mutate(total_n = count * n) %>% select(-count, -n) %>% 
+  group_by(iso, D_day) %>% 
+  summarise(total_n = sum(total_n)) %>% 
+  spread(key = iso, value = total_n) %>% 
+  slice(1:2, 8:15, 3:7) %>% View()
   
-  plot_list[[i]] <- roaming_data %>% 
-    group_by(return, iso, nation) %>% 
-    summarise(count = sum(count)) %>% 
-    filter(iso == i) %>% 
-    ggplot(aes(x=return,y=count)) +
-    geom_line() +
-    geom_point() +
-    scale_x_datetime(date_breaks="7 day", 
-                     labels = date_format("%Y-%m-%d")) + 
-    theme_bw() +
-    labs(x="") +
-    theme(axis.text.x = element_text(angle = 90, vjust=0.5, size = 10, face = "bold"),  # rotate x axis text
-          panel.grid.minor = element_blank(),
-          strip.text.x = element_text(size=15,face = "bold")) +  # turn off minor grid
-    facet_grid(~nation)
-}
 
-do.call(grid.arrange, c(plot_list, ncol=3))
 ```
 
-```{r, echo=FALSE}
-iso_name <- roaming_data$iso %>% unique()
-plot_list <- list()
-cnt <- 0
-
-for (i in iso_name[61:72]) {
-  cnt <- cnt + 1
-  
-  plot_list[[i]] <- roaming_data %>% 
-    group_by(return, iso, nation) %>% 
-    summarise(count = sum(count)) %>% 
-    filter(iso == i) %>% 
-    ggplot(aes(x=return,y=count)) +
-    geom_line() +
-    geom_point() +
-    scale_x_datetime(date_breaks="7 day", 
-                     labels = date_format("%Y-%m-%d")) + 
-    theme_bw() +
-    labs(x="") +
-    theme(axis.text.x = element_text(angle = 90, vjust=0.5, size = 10, face = "bold"),  # rotate x axis text
-          panel.grid.minor = element_blank(),
-          strip.text.x = element_text(size=15,face = "bold")) +  # turn off minor grid
-    facet_grid(~nation)
-}
-
-do.call(grid.arrange, c(plot_list, ncol=3))
-```
-
-```{r, echo=FALSE}
-iso_name <- roaming_data$iso %>% unique()
-plot_list <- list()
-cnt <- 0
-
-for (i in iso_name[73:84]) {
-  cnt <- cnt + 1
-  
-  plot_list[[i]] <- roaming_data %>% 
-    group_by(return, iso, nation) %>% 
-    summarise(count = sum(count)) %>% 
-    filter(iso == i) %>% 
-    ggplot(aes(x=return,y=count)) +
-    geom_line() +
-    geom_point() +
-    scale_x_datetime(date_breaks="7 day", 
-                     labels = date_format("%Y-%m-%d")) + 
-    theme_bw() +
-    labs(x="") +
-    theme(axis.text.x = element_text(angle = 90, vjust=0.5, size = 10, face = "bold"),  # rotate x axis text
-          panel.grid.minor = element_blank(),
-          strip.text.x = element_text(size=15,face = "bold")) +  # turn off minor grid
-    facet_grid(~nation)
-}
-
-do.call(grid.arrange, c(plot_list, ncol=3))
-```
-
-```{r, echo=FALSE}
-iso_name <- roaming_data$iso %>% unique()
-plot_list <- list()
-cnt <- 0
-
-for (i in iso_name[85:96]) {
-  cnt <- cnt + 1
-  
-  plot_list[[i]] <- roaming_data %>% 
-    group_by(return, iso, nation) %>% 
-    summarise(count = sum(count)) %>% 
-    filter(iso == i) %>% 
-    ggplot(aes(x=return,y=count)) +
-    geom_line() +
-    geom_point() +
-    scale_x_datetime(date_breaks="7 day", 
-                     labels = date_format("%Y-%m-%d")) + 
-    theme_bw() +
-    labs(x="") +
-    theme(axis.text.x = element_text(angle = 90, vjust=0.5, size = 10, face = "bold"),  # rotate x axis text
-          panel.grid.minor = element_blank(),
-          strip.text.x = element_text(size=15,face = "bold")) +  # turn off minor grid
-    facet_grid(~nation)
-}
-
-do.call(grid.arrange, c(plot_list, ncol=3))
-```
-
-```{r, echo=FALSE}
-iso_name <- roaming_data$iso %>% unique()
-plot_list <- list()
-cnt <- 0
-
-for (i in iso_name[97:108]) {
-  cnt <- cnt + 1
-  
-  plot_list[[i]] <- roaming_data %>% 
-    group_by(return, iso, nation) %>% 
-    summarise(count = sum(count)) %>% 
-    filter(iso == i) %>% 
-    ggplot(aes(x=return,y=count)) +
-    geom_line() +
-    geom_point() +
-    scale_x_datetime(date_breaks="7 day", 
-                     labels = date_format("%Y-%m-%d")) + 
-    theme_bw() +
-    labs(x="") +
-    theme(axis.text.x = element_text(angle = 90, vjust=0.5, size = 10, face = "bold"),  # rotate x axis text
-          panel.grid.minor = element_blank(),
-          strip.text.x = element_text(size=15,face = "bold")) +  # turn off minor grid
-    facet_grid(~nation)
-}
-
-do.call(grid.arrange, c(plot_list, ncol=3))
-```
-
-```{r, echo=FALSE}
-iso_name <- roaming_data$iso %>% unique()
-plot_list <- list()
-cnt <- 0
-
-for (i in iso_name[109:120]) {
-  cnt <- cnt + 1
-  
-  plot_list[[i]] <- roaming_data %>% 
-    group_by(return, iso, nation) %>% 
-    summarise(count = sum(count)) %>% 
-    filter(iso == i) %>% 
-    ggplot(aes(x=return,y=count)) +
-    geom_line() +
-    geom_point() +
-    scale_x_datetime(date_breaks="7 day", 
-                     labels = date_format("%Y-%m-%d")) + 
-    theme_bw() +
-    labs(x="") +
-    theme(axis.text.x = element_text(angle = 90, vjust=0.5, size = 10, face = "bold"),  # rotate x axis text
-          panel.grid.minor = element_blank(),
-          strip.text.x = element_text(size=15,face = "bold")) +  # turn off minor grid
-    facet_grid(~nation)
-}
-
-do.call(grid.arrange, c(plot_list, ncol=3))
-```
-
-```{r, echo=FALSE}
-iso_name <- roaming_data$iso %>% unique()
-plot_list <- list()
-cnt <- 0
-
-for (i in iso_name[121:132]) {
-  cnt <- cnt + 1
-  
-  plot_list[[i]] <- roaming_data %>% 
-    group_by(return, iso, nation) %>% 
-    summarise(count = sum(count)) %>% 
-    filter(iso == i) %>% 
-    ggplot(aes(x=return,y=count)) +
-    geom_line() +
-    geom_point() +
-    scale_x_datetime(date_breaks="7 day", 
-                     labels = date_format("%Y-%m-%d")) + 
-    theme_bw() +
-    labs(x="") +
-    theme(axis.text.x = element_text(angle = 90, vjust=0.5, size = 10, face = "bold"),  # rotate x axis text
-          panel.grid.minor = element_blank(),
-          strip.text.x = element_text(size=15,face = "bold")) +  # turn off minor grid
-    facet_grid(~nation)
-}
-
-do.call(grid.arrange, c(plot_list, ncol=3))
-```
-
-```{r, echo=FALSE}
-iso_name <- roaming_data$iso %>% unique()
-plot_list <- list()
-cnt <- 0
-
-for (i in iso_name[133:144]) {
-  cnt <- cnt + 1
-  
-  plot_list[[i]] <- roaming_data %>% 
-    group_by(return, iso, nation) %>% 
-    summarise(count = sum(count)) %>% 
-    filter(iso == i) %>% 
-    ggplot(aes(x=return,y=count)) +
-    geom_line() +
-    geom_point() +
-    scale_x_datetime(date_breaks="7 day", 
-                     labels = date_format("%Y-%m-%d")) + 
-    theme_bw() +
-    labs(x="") +
-    theme(axis.text.x = element_text(angle = 90, vjust=0.5, size = 10, face = "bold"),  # rotate x axis text
-          panel.grid.minor = element_blank(),
-          strip.text.x = element_text(size=15,face = "bold")) +  # turn off minor grid
-    facet_grid(~nation)
-}
-
-do.call(grid.arrange, c(plot_list, ncol=3))
-```
-
-```{r, echo=FALSE}
-iso_name <- roaming_data$iso %>% unique()
-plot_list <- list()
-cnt <- 0
-
-for (i in iso_name[145:156]) {
-  cnt <- cnt + 1
-  
-  plot_list[[i]] <- roaming_data %>% 
-    group_by(return, iso, nation) %>% 
-    summarise(count = sum(count)) %>% 
-    filter(iso == i) %>% 
-    ggplot(aes(x=return,y=count)) +
-    geom_line() +
-    geom_point() +
-    scale_x_datetime(date_breaks="7 day", 
-                     labels = date_format("%Y-%m-%d")) + 
-    theme_bw() +
-    labs(x="") +
-    theme(axis.text.x = element_text(angle = 90, vjust=0.5, size = 10, face = "bold"),  # rotate x axis text
-          panel.grid.minor = element_blank(),
-          strip.text.x = element_text(size=15,face = "bold")) +  # turn off minor grid
-    facet_grid(~nation)
-}
-
-do.call(grid.arrange, c(plot_list, ncol=3))
-```
-
-```{r, echo=FALSE}
-iso_name <- roaming_data$iso %>% unique()
-plot_list <- list()
-cnt <- 0
-
-for (i in iso_name[157:168]) {
-  cnt <- cnt + 1
-  
-  plot_list[[i]] <- roaming_data %>% 
-    group_by(return, iso, nation) %>% 
-    summarise(count = sum(count)) %>% 
-    filter(iso == i) %>% 
-    ggplot(aes(x=return,y=count)) +
-    geom_line() +
-    geom_point() +
-    scale_x_datetime(date_breaks="7 day", 
-                     labels = date_format("%Y-%m-%d")) + 
-    theme_bw() +
-    labs(x="") +
-    theme(axis.text.x = element_text(angle = 90, vjust=0.5, size = 10, face = "bold"),  # rotate x axis text
-          panel.grid.minor = element_blank(),
-          strip.text.x = element_text(size=15,face = "bold")) +  # turn off minor grid
-    facet_grid(~nation)
-}
-
-do.call(grid.arrange, c(plot_list, ncol=3))
-```
-
-```{r, echo=FALSE}
-iso_name <- roaming_data$iso %>% unique()
-plot_list <- list()
-cnt <- 0
-
-for (i in iso_name[169:174]) {
-  cnt <- cnt + 1
-  
-  plot_list[[i]] <- roaming_data %>% 
-    group_by(return, iso, nation) %>% 
-    summarise(count = sum(count)) %>% 
-    filter(iso == i) %>% 
-    ggplot(aes(x=return,y=count)) +
-    geom_line() +
-    geom_point() +
-    scale_x_datetime(date_breaks="7 day", 
-                     labels = date_format("%Y-%m-%d")) + 
-    theme_bw() +
-    labs(x="") +
-    theme(axis.text.x = element_text(angle = 90, vjust=0.5, size = 10, face = "bold"),  # rotate x axis text
-          panel.grid.minor = element_blank(),
-          strip.text.x = element_text(size=15,face = "bold")) +  # turn off minor grid
-    facet_grid(~nation)
-}
-
-do.call(grid.arrange, c(plot_list, ncol=3))
-```
