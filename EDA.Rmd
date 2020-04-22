@@ -286,7 +286,6 @@ roaming_data_useful <- roaming_data_new %>%
   filter(return >= "2020-03-18")
 
 roaming_data_useful_14 <- roaming_data_useful %>% filter(flight_time <= 14)
-roaming_data_useful_14 %>% filter(return == "2020-03-18") %>% View()
 ```
 
 ```{r}
@@ -301,10 +300,15 @@ roaming_data_useful_14 %>% filter(return == "2020-03-18") %>% View()
 #   mutate_at(vars(6:20), funs())
 
 library(splitstackshape)
+day_unique <- roaming_data_useful_14$return %>% as.character() %>% unique()
+a <- list()
+cnt <- 0
 
-roaming_data_useful_14 %>%
+for (k in day_unique) {
+  cnt <- cnt + 1
+  a[[cnt]] <- roaming_data_useful_14 %>%
   select(-arrival, -departure) %>% 
-  filter(return == "2020-03-18") %>%
+  filter(return == k) %>%
   mutate(total_time = flight_time + stay_time) %>% 
   rowwise() %>% 
   mutate(day = ifelse(total_time >= 14, paste0(seq(flight_time, 14, 1), collapse = ","), paste0(seq(flight_time, total_time, 1), collapse = ","))) %>% 
@@ -312,11 +316,41 @@ roaming_data_useful_14 %>%
   select(-contains("time"), -day) %>% 
   gather(key = D_day, value = n, 4:18) %>%
   mutate(total_n = count * n) %>% select(-count, -n) %>% 
-  group_by(iso, D_day) %>% 
+  group_by(return, iso, D_day) %>% 
   summarise(total_n = sum(total_n)) %>% 
   spread(key = iso, value = total_n) %>% 
-  slice(1:2, 8:15, 3:7) %>% View()
-  
+  slice(1:2, 8:15, 3:7) %>% 
+  ungroup() %>% 
+  mutate(return = return - 0:14) %>% 
+  rename(Date = return)
+}
 
+
+roaming_data_useful_14 %>%
+  select(-arrival, -departure) %>%
+  filter(return == "2020-03-18") %>%
+  mutate(total_time = flight_time + stay_time) %>%
+  rowwise() %>%
+  mutate(day = ifelse(total_time >= 14, paste0(seq(flight_time, 14, 1), collapse = ","), paste0(seq(flight_time, total_time, 1), collapse = ","))) %>%
+  cSplit_e("day", ",", type = "character", fill = 0) %>%
+  select(-contains("time"), -day) %>%
+  gather(key = D_day, value = n, 4:18) %>%
+  mutate(total_n = count * n) %>% select(-count, -n) %>%
+  group_by(return, iso, D_day) %>%
+  summarise(total_n = sum(total_n)) %>%
+  spread(key = iso, value = total_n) %>%
+  slice(1:2, 8:15, 3:7) %>% 
+  ungroup() %>% 
+  mutate(return = return - 0:14) %>% 
+  rename(Date = return)
+```
+
+```{r}
+covid_global %>%
+  mutate(Country = str_to_lower(Country)) %>% 
+  filter(day >= "2020-03-04") %>% 
+  select(-`Country Name`, -Region) %>% 
+  left_join(population, by=c("Country" = "iso")) %>% 
+  select(day, iso = Country, Confirmed, `Cumulative Confirmed`, population) %>% View()
 ```
 
