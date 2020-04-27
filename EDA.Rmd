@@ -74,9 +74,7 @@ y <- as.data.frame(y) %>% select(1:3)
 ```{r, echo=FALSE}
 library(DT)
 options(DT.options = list(pageLength=5))
-
 population$V3 <- NULL
-
 datatable(roaming_data %>% slice(1:10000),
           caption = "로밍데이터",
           filter='top')
@@ -115,7 +113,6 @@ datatable(population,
 # kk <- roaming_data$iso %>% unique()
 # continent_name <- Continent %>% filter(iso %in% kk) %>% filter(!duplicated(iso))
 # roaming_data_new <- left_join(roaming_data, continent_name, by=c("iso" = "iso"))
-
 roaming_data_new <-  roaming_data %>% 
   mutate(stay_time = ymd(departure)-ymd(arrival),
          flight_time = ymd(return)-ymd(departure))
@@ -271,14 +268,12 @@ roaming_data %>% slice(10) %>% kable() %>% kable_styling()
 
 ```{r}
 y <- y %>% select(date = 날짜, y = 신규확진자) %>% mutate(date = ymd(date)) %>% filter(date >= "2020-03-18")
-
 roaming_data_useful <- roaming_data_new %>% 
   mutate(return = ymd(return),
          arrival = ymd(arrival),
          departure = ymd(departure)) %>% 
   arrange(return) %>% 
   filter(return >= "2020-03-18")
-
 roaming_data_useful_14 <- roaming_data_useful %>% filter(flight_time <= 14)
 ```
 
@@ -292,19 +287,27 @@ roaming_data_useful_14 <- roaming_data_useful %>% filter(flight_time <= 14)
 #   rowwise() %>%
 #   mutate_at(vars(6:20), funs())
 
+population %>%
+  left_join(covid_global %>%
+              mutate(Country = str_to_lower(Country)) %>%
+              filter(day >= "2020-03-03"), by=c("iso" = "Country")) %>%
+  select(-`Country Name`, -Region) %>%
+  select(day, iso, Confirmed, Cumulative_confirmed = `Cumulative Confirmed`, population) %>%
+  mutate(adj_confirmed = Confirmed/population) %>%
+  group_by(iso) %>%
+  mutate(grad_confirmed = Confirmed - lag(Confirmed)) %>%
+  ungroup() %>% filter(is.na(day)) %>% select(iso) %>% unique() %>% unlist() -> day_na
+
 '%!in%' <- function(x,y)!('%in%'(x,y))
-
 library(splitstackshape)
-
 day_unique <- roaming_data_useful_14$return %>% as.character() %>% unique()
 a <- list()
 cnt <- 0
-
 for (k in day_unique) {
   cnt <- cnt + 1
   a[[cnt]] <- roaming_data_useful_14 %>%
   select(-arrival, -departure) %>% 
-  filter(iso %!in% day_na) %>% 
+  filter(iso %!in% day_na) %>%
   filter(return == k) %>%
   mutate(total_time = flight_time + stay_time) %>% 
   rowwise() %>% 
@@ -321,8 +324,6 @@ for (k in day_unique) {
   mutate(return = return - 0:14) %>% 
   rename(Date = return)
 }
-
-
 # roaming_data_useful_14 %>%
 #   select(-arrival, -departure) %>%
 #   filter(return == "2020-03-18") %>%
@@ -343,10 +344,8 @@ for (k in day_unique) {
 ```
 
 ```{r}
-
 b <- list()
 cnt <- 0
-
 for (j in 1:length(a)) {
   
   cnt <- cnt+1
@@ -357,7 +356,7 @@ for (j in 1:length(a)) {
                 filter(day >= "2020-03-03"), by=c("iso" = "Country")) %>% 
     select(-`Country Name`, -Region) %>% 
     select(day, iso, Confirmed, Cumulative_confirmed = `Cumulative Confirmed`, population) %>% 
-    mutate(adj_confirmed = Confirmed/population) %>% 
+    mutate(adj_confirmed = ((Confirmed + 1)/population)) %>% 
     group_by(iso) %>%
     mutate(grad_confirmed = Confirmed - lag(Confirmed)) %>% 
     ungroup() %>% 
@@ -369,31 +368,110 @@ for (j in 1:length(a)) {
     filter(Date %in% c(a[[j]] %>% mutate(Date = as.character(Date)) %>% select(Date) %>% unlist()))
 }
 
-# population %>% 
+# population %>%
 #   left_join(covid_global %>%
-#               mutate(Country = str_to_lower(Country)) %>% 
-#               filter(day >= "2020-03-03"), by=c("iso" = "Country")) %>% 
-#   select(-`Country Name`, -Region) %>% 
-#   select(day, iso, Confirmed, Cumulative_confirmed = `Cumulative Confirmed`, population) %>% 
-#   mutate(adj_confirmed = Confirmed/population) %>% 
+#               mutate(Country = str_to_lower(Country)) %>%
+#               filter(day >= "2020-03-03"), by=c("iso" = "Country")) %>%
+#   select(-`Country Name`, -Region) %>%
+#   select(day, iso, Confirmed, Cumulative_confirmed = `Cumulative Confirmed`, population) %>%
+#   mutate(adj_confirmed = Confirmed/population) %>%
 #   group_by(iso) %>%
-#   mutate(grad_confirmed = Confirmed - lag(Confirmed)) %>% 
-#   ungroup() %>% 
-#   filter(day >= "2020-03-04") %>% 
-#   mutate(risk_trend = adj_confirmed * grad_confirmed) %>% 
-#   select(Date = day, iso, risk_trend) %>% 
-#   spread(key = iso, value = risk_trend) %>% 
-#   select(one_of(a[[1]] %>% select(-2) %>% colnames())) %>% 
+#   mutate(grad_confirmed = Confirmed - lag(Confirmed)) %>%
+#   ungroup() %>%
+#   filter(day >= "2020-03-04") %>%
+#   mutate(risk_trend = adj_confirmed * grad_confirmed) %>%
+#   select(Date = day, iso, risk_trend) %>%
+#   spread(key = iso, value = risk_trend) %>%
+#   select(one_of(a[[1]] %>% select(-2) %>% colnames())) %>%
+#   filter(Date %in% c(a[[1]] %>% mutate(Date = as.character(Date)) %>% select(Date) %>% unlist()))
+
+b <- list()
+cnt <- 0
+for (j in 1:length(a)) {
+  
+  cnt <- cnt+1
+  
+  b[[j]] <- population %>% 
+    left_join(covid_global %>%
+                mutate(Country = str_to_lower(Country)) %>% 
+                filter(day >= "2020-03-03"), by=c("iso" = "Country")) %>% 
+    select(-`Country Name`, -Region) %>% 
+    select(day, iso, Confirmed, Cumulative_confirmed = `Cumulative Confirmed`, population) %>% 
+    mutate(adj_confirmed = ((Confirmed + 1)/population)) %>% 
+    group_by(iso) %>%
+    mutate(trend_confirmed = ((Confirmed + lag(Confirmed))/2) + 1) %>% 
+    ungroup() %>% 
+    filter(day >= "2020-03-04") %>% 
+    mutate(risk_trend = adj_confirmed * trend_confirmed) %>% 
+    select(Date = day, iso, risk_trend) %>% 
+    spread(key = iso, value = risk_trend) %>% 
+    select(one_of(a[[j]] %>% select(-2) %>% colnames())) %>% 
+    filter(Date %in% c(a[[j]] %>% mutate(Date = as.character(Date)) %>% select(Date) %>% unlist()))
+}
+
+
+# population %>%
+#   left_join(covid_global %>%
+#               mutate(Country = str_to_lower(Country)) %>%
+#               filter(day >= "2020-03-03"), by=c("iso" = "Country")) %>%
+#   select(-`Country Name`, -Region) %>%
+#   select(day, iso, Confirmed, Cumulative_confirmed = `Cumulative Confirmed`, population) %>%
+#   mutate(adj_confirmed = (Confirmed/population) + 1) %>%
+#   group_by(iso) %>%
+#   mutate(trend_confirmed = (Confirmed + lag(Confirmed))/2 + 1) %>%
+#   ungroup() %>%
+#   filter(day >= "2020-03-04") %>%
+#   mutate(risk_trend = adj_confirmed * trend_confirmed) %>%
+#   select(Date = day, iso, risk_trend) %>%
+#   spread(key = iso, value = risk_trend) %>%
+#   select(one_of(a[[1]] %>% select(-2) %>% colnames())) %>%
+#   filter(Date %in% c(a[[1]] %>% mutate(Date = as.character(Date)) %>% select(Date) %>% unlist()))
+
+b <- list()
+cnt <- 0
+for (j in 1:length(a)) {
+  
+  cnt <- cnt+1
+  
+  b[[j]] <- population %>% 
+    left_join(covid_global %>%
+                mutate(Country = str_to_lower(Country)) %>% 
+                filter(day >= "2020-03-03"), by=c("iso" = "Country")) %>% 
+    select(-`Country Name`, -Region) %>% 
+    select(day, iso, Confirmed, Cumulative_confirmed = `Cumulative Confirmed`, population) %>% 
+    group_by(iso) %>%
+    mutate(trend_confirmed = (Confirmed + lag(Confirmed))/2 + 1) %>% 
+    ungroup() %>% 
+    mutate(risk_trend = trend_confirmed/population) %>% 
+    filter(day >= "2020-03-04") %>% 
+    select(Date = day, iso, risk_trend) %>% 
+    spread(key = iso, value = risk_trend) %>% 
+    select(one_of(a[[j]] %>% select(-2) %>% colnames())) %>% 
+    filter(Date %in% c(a[[j]] %>% mutate(Date = as.character(Date)) %>% select(Date) %>% unlist()))
+}
+
+# population %>%
+#   left_join(covid_global %>%
+#               mutate(Country = str_to_lower(Country)) %>%
+#               filter(day >= "2020-03-03"), by=c("iso" = "Country")) %>%
+#   select(-`Country Name`, -Region) %>%
+#   select(day, iso, Confirmed, Cumulative_confirmed = `Cumulative Confirmed`, population) %>%
+#   group_by(iso) %>%
+#   mutate(trend_confirmed = (Confirmed + lag(Confirmed))/2 + 1) %>%
+#   mutate(risk_trend = trend_confirmed/population) %>%
+#   ungroup() %>%
+#   filter(day >= "2020-03-04") %>%
+#   select(Date = day, iso, risk_trend) %>%
+#   spread(key = iso, value = risk_trend) %>%
+#   select(one_of(a[[1]] %>% select(-2) %>% colnames())) %>%
 #   filter(Date %in% c(a[[1]] %>% mutate(Date = as.character(Date)) %>% select(Date) %>% unlist()))
 ```
 
 ```{r}
-
 c <- data.frame()
-
 for (s in 1:length(a)) {
   
-  combine_risk <- (a[[s]] %>% select(-1,-2)) * (b[[s]] %>% select(-1))
+  combine_risk <- (a[[s]] %>% select(-1,-2)) * (b[[s]] %>% arrange(-row_number()) %>% select(-1))
   
   temp <- a[[s]] %>% select(1,2) %>% 
     cbind(combine_risk %>%
@@ -405,21 +483,18 @@ for (s in 1:length(a)) {
   
   c <- rbind(c, temp)
 }
-
-
 c %>% mutate(Return = ymd(Return)) %>% left_join(y, by=c("Return" = "date"))
 
-# combine_risk <- (a[[1]] %>% select(-1,-2)) * (b[[1]] %>% select(-1))
-# 
-# a[[1]] %>% select(1,2) %>% 
+# c %>% mutate(Return = ymd(Return)) %>% left_join(y, by=c("Return" = "date")) %>% fwrite("covid_risk1.csv")
+
+# combine_risk <- (a[[1]] %>% select(-1,-2)) * (b[[1]] %>% arrange(-row_number()) %>% select(-1))
+
+
+# a[[1]] %>% select(1,2) %>%
 #   cbind(combine_risk %>%
-#           mutate(Risk_sum = select_all(.) %>% rowSums(na.rm = T))) %>% 
-#   select(D_day, Risk_sum) %>% 
-#   spread(D_day, Risk_sum) %>% 
-#   mutate(Return = a[[1]] %>% select(Date) %>% mutate(Date = as.character(Date)) %>% slice(1) %>% unlist()) %>% 
+#           mutate(Risk_sum = select_all(.) %>% rowSums(na.rm = T))) %>%
+#   select(D_day, Risk_sum) %>%
+#   spread(D_day, Risk_sum) %>%
+#   mutate(Return = a[[1]] %>% select(Date) %>% mutate(Date = as.character(Date)) %>% slice(1) %>% unlist()) %>%
 #   select(16, 1:2, 8:15, 3:7)
 ```
-
-
-
-
